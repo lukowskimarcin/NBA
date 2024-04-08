@@ -1,0 +1,16 @@
+version: '3'
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest 
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: sa!234#sa$%      
+    ports:
+      - 5433:1433
+    volumes:
+      - mssql-db-volume:/var/opt/mssql
+      - ./sql:/tmp/mssql
+
+   
+volumes:
+  mssql-db-volume:
