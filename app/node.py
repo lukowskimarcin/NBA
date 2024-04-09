@@ -1,18 +1,20 @@
+from enum import Enum
+import json
 
-from enum import Enum 
-import json 
 
 class NodeState(Enum):
-    PERFORMED=1
-    ACTUAL=2
-    FUTURE=3
-  
+    PERFORMED = 1
+    ACTUAL = 2
+    FUTURE = 3
+    EMPTY = 4
+
 
 class Node:
     """
-        Reprezentacja wezla i jego stanu
+    Reprezentacja wezla i jego stanu
     """
-    def __init__(self, level: int, action: str, state: NodeState, cost, time):  
+
+    def __init__(self, level: int, action: str, state: NodeState, cost, time):
         self.level = level
         self.action = action
         self.state = state
@@ -26,33 +28,38 @@ class Node:
 
     def __hash__(self):
         return hash((self.level, self.action))
-    
+
     def __str__(self) -> str:
         return f"{self.action}"
-    
+
     def to_dict(self):
         return {
-            'level': self.level,
-            'action': self.action,
-            'state': self.state.name,
-            'cost': self.cost,
-            'time': self.time
+            "level": self.level,
+            "action": self.action,
+            "state": self.state.name,
+            "cost": self.cost,
+            "time": self.time,
         }
 
     @classmethod
     def from_dict(cls, data):
-        return cls(data['level'], data['action'], NodeState[data['state']], data['cost'], data['time'])
-    
+        return cls(
+            data["level"],
+            data["action"],
+            NodeState[data["state"]],
+            data["cost"],
+            data["time"],
+        )
 
-ROOT_NODE = Node(0, 'ROOT', NodeState.PERFORMED, 0, 0)
+
+ROOT_NODE = Node(0, "ROOT", NodeState.PERFORMED, 0, 0)
 
 
-
-if __name__ == "__main__": 
-    node = Node(1, 'example', NodeState.PERFORMED, 10, 20)
+if __name__ == "__main__":
+    node = Node(1, "example", NodeState.PERFORMED, 10, 20)
     node_dict = node.to_dict()
     print("Node as dictionary:", node_dict)
-    
+
     node_json = json.dumps(node_dict)
     print("Node as JSON:", node_json)
 

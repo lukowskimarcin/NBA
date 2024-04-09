@@ -16,7 +16,7 @@ class GraphRepository:
         cursor.execute("SELECT * FROM NBA")
         rows = cursor.fetchall()
         for row in rows:
-            graph = NBAGraph(row.client_id, row.dlum_id, row.initial_wps, row.current_wps, row.best_action_path, row.is_action_performed)
+            graph = NBAGraph(row.client_id, row.dlum_id, row.initial_wps, row.current_wps, row.best_action_path, row.is_action_performed, row.is_active)
             graphs.append(graph)
         conn.close()
         return graphs
@@ -31,8 +31,8 @@ class GraphRepository:
             nodes_path.append(n.to_dict())
         best_action_path = json.dumps(nodes_path)
 
-        cursor.execute("INSERT INTO NBA (client_id, dlum_id, initial_wps, current_wps, best_action_path, is_action_performed) VALUES (?, ?, ?, ?, ?, ?)",
-                       (graph.client_id, graph.dlum_id, graph.initial_wps, graph.current_wps, best_action_path, graph.is_action_performed))
+        cursor.execute("INSERT INTO NBA (client_id, dlum_id, initial_wps, current_wps, best_action_path, is_action_performed, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                       (graph.client_id, graph.dlum_id, graph.initial_wps, graph.current_wps, best_action_path, graph.is_action_performed, graph.is_active))
         conn.commit()
         conn.close()
 
@@ -44,7 +44,7 @@ class GraphRepository:
         row = cursor.fetchone()
 
         if row:
-            graph = NBAGraph(row.client_id, row.dlum_id, row.initial_wps, row.current_wps, row.best_action_path, row.is_action_performed)
+            graph = NBAGraph(row.client_id, row.dlum_id, row.initial_wps, row.current_wps, row.best_action_path, row.is_action_performed, row.is_active)
             conn.close()
             return graph
         else:
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     print(f"\nsingle: {single}")
 
 
-    graph = NBAGraph(4,5,1000,500,None,'T')
+    graph = NBAGraph(4,5,1000,500,None,'T', 'T')
     repository.save(graph)
     saved = repository.findById(4, 4)
     print(f"\nsaved: {saved}")
