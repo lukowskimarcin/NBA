@@ -1,0 +1,19 @@
+{
+  "sqltools.connections": [
+    {
+      "mssqlOptions": {
+        "appName": "SQLTools",
+        "useUTC": true,
+        "encrypt": true
+      },
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 5433,
+      "driver": "MSSQL",
+      "name": "test",
+      "database": "msdb",
+      "username": "sa",
+      "password": "sa!234#sa$%"
+    }
+  ]
+}
