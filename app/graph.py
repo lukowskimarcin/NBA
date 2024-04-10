@@ -1,10 +1,13 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from actions import ActionModel, ACTION_MODELS
+from dfs import DFS
 from node import Node, ROOT_NODE, NodeState
 import json
 
-MAX_COST = 40  # Maksymalny koszt
+import random
+
+MAX_COST = 12  # Maksymalny koszt
 MAX_TIME = 18  # Maksymalny czas zycia sprawy
 
 
@@ -19,9 +22,9 @@ class NBAGraph:
         dlum_id,
         initial_wps,
         current_wps,
-        best_action_path,
-        is_action_performed,
-        is_active,
+        best_action_path=None,
+        is_action_performed="N",
+        is_active="T",
     ) -> None:
         self.client_id = client_id
         self.dlum_id = dlum_id
@@ -40,8 +43,6 @@ class NBAGraph:
                 if self.is_action_performed and node.state == NodeState.ACTUAL:
                     node.state = NodeState.PERFORMED
                 self.best_action_path_nodes.append(node)
-
-        print(f"END init")
 
     def __generate_layer(
         self, node: Node, models: list[ActionModel], node_sum_cost, node_sum_time
@@ -68,17 +69,19 @@ class NBAGraph:
                 actual_sum_cost = node_sum_cost + cost
                 actual_sum_time = node_sum_time + time
 
-                if (actual_sum_cost < MAX_COST) and (actual_sum_time < MAX_TIME):
+                if (actual_sum_cost <= MAX_COST) and (actual_sum_time <= MAX_TIME):
                     # Nie przekroczone koszty mozemy dodac wezel do grafu
                     pdp = model.predict(self.client_id, self.dlum_id)
-                    weight = self.current_wps * pdp
+                    weight = round(self.current_wps * pdp, 4)
 
                     if (
                         visited_layer
                         and last_best_node is not None
                         and last_best_node.action == model.action_name
                     ):
+                        self.sequence += 1
                         new_node = Node(
+                            self.sequence,
                             node.level + 1,
                             model.action_name,
                             NodeState.PERFORMED,
@@ -87,7 +90,9 @@ class NBAGraph:
                         )
                         self.best_action_path_nodes[node.level + 1] = new_node
                     else:
+                        self.sequence += 1
                         new_node = Node(
+                            self.sequence,
                             node.level + 1,
                             model.action_name,
                             NodeState.EMPTY,
@@ -102,19 +107,43 @@ class NBAGraph:
                     self.__generate_layer(
                         new_node, models, actual_sum_cost, actual_sum_time
                     )
-                else:
-                    print(f"{node.level}-{node.action} -> END PATH")
 
     def build(self, models: list[ActionModel]):
         self.graph = nx.DiGraph()
         self.nodes = [ROOT_NODE]
-
+        self.sequence = 0
         self.__generate_layer(ROOT_NODE, models, 0, 0)
-        print(f"End build Graph")
 
-    def calculate_next_action(self):
+    def __find_node_index(self, node):
+        i = 0
+        for n in self.nodes:
+            if n == node:
+                return i
+            i += 1
+
+        return -1
+
+    def determine_next_action(self):
         # wyznacz nastepna akcje do wykonania na dlugu
-        pass
+        dfs_solver = DFS(self.graph)
+        visited = set()
+        optimal_path: list[Node] = dfs_solver.dfs(self.nodes[0], visited, [])
+        actual_node = None
+
+        prev_node = None
+        for node in optimal_path:
+            if prev_node is not None:
+                index = self.__find_node_index(node)
+                if prev_node.state == NodeState.PERFORMED:
+                    self.nodes[index].state = NodeState.ACTUAL
+                    actual_node = self.nodes[index]
+                else:
+                    self.nodes[index].state = NodeState.FUTURE
+
+            prev_node = node
+
+        self.is_action_performed = "N"
+        return actual_node
 
     def draw(self):
         # https://networkx.org/documentation/stable/auto_examples/graph/plot_dag_layout.html
@@ -127,19 +156,41 @@ class NBAGraph:
         # Compute the multipartite_layout using the "layer" node attribute
         pos = nx.multipartite_layout(self.graph, subset_key="layer")
 
-        nx.draw_networkx_nodes(self.graph, pos, node_color="lightblue", node_size=2000)
+        # kolorowanie stanow:
+        NODE_COLORS = ["lightblue", "#6eaa5e", "pink", "#dbead5"]
+        for state in NodeState.iterate_enum_members():
+            nodelist = []
+            for node in self.nodes:
+                if node.state == state:
+                    nodelist.append(node)
+
+            nx.draw_networkx_nodes(
+                self.graph,
+                pos,
+                node_color=NODE_COLORS[state.value],
+                node_size=3000,
+                nodelist=nodelist,
+            )
+
         nx.draw_networkx_edges(self.graph, pos, edge_color="grey")
-        nx.draw_networkx_labels(self.graph, pos, font_size=8, font_family="sans-serif")
+        nx.draw_networkx_labels(self.graph, pos, font_size=6, font_family="sans-serif")
         nx.draw_networkx_edge_labels(
             self.graph,
             pos,
             edge_labels={
                 (u, v): d["weight"] for u, v, d in self.graph.edges(data=True)
             },
-            font_weight="bold",
         )
 
         plt.axis("off")
+        plt.title(
+            f"""
+                 client_id: {self.client_id}, dlum_id: {self.dlum_id}   
+                 wps: {self.current_wps}/{self.initial_wps}
+                 MAX_COST: {MAX_COST} MAX_TIME: {MAX_TIME}
+                """,
+            loc="left",
+        )
         plt.show()
 
     def __str__(self) -> str:
@@ -159,9 +210,36 @@ class NBAGraph:
 
 
 if __name__ == "__main__":
-    graph = NBAGraph(1, 1, 1000, 1000, None, "N", "T")
+    from repository import GraphRepository
+
+    repository = GraphRepository()
+
+    client_id = random.randint(1, 1000)
+    dlum_id = random.randint(1, 1000)
+
+    graph = NBAGraph(client_id, dlum_id, 1000, 1000)
     graph.build(ACTION_MODELS)
 
     print(f"graph: {graph}")
+    #graph.draw()
+    repository.save(graph)
+
+    # 1
+    graph = repository.findById(client_id, dlum_id)
+    graph.build(ACTION_MODELS)
     graph.draw()
-#    graph.draw()
+    actual_node = graph.determine_next_action()
+    print(f"1: next best action: {actual_node.level}-{actual_node.action}")
+    graph.draw()
+    repository.save(graph)
+
+    # 2
+    graph = repository.findById(client_id, dlum_id)
+    graph.build(ACTION_MODELS)
+    graph.draw()
+    actual_node = graph.determine_next_action()
+    print(f"2: next best action: {actual_node.level}-{actual_node.action}")
+    graph.draw()
+    repository.save(graph)
+
+ 

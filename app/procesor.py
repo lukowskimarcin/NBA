@@ -19,7 +19,7 @@ class GraphsProcessor:
         graph.draw()
 
         # wyznacz
-        graph.calculate_next_action()
+        graph.determine_next_action()
 
         # pokaz jak wyglada graf po wyznaczeniu akcji
         graph.draw()

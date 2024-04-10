@@ -3,10 +3,14 @@ import json
 
 
 class NodeState(Enum):
+    EMPTY = 0
     PERFORMED = 1
     ACTUAL = 2
     FUTURE = 3
-    EMPTY = 4
+
+    def iterate_enum_members():
+        for state in NodeState.__members__.values():
+            yield state
 
 
 class Node:
@@ -14,7 +18,8 @@ class Node:
     Reprezentacja wezla i jego stanu
     """
 
-    def __init__(self, level: int, action: str, state: NodeState, cost, time):
+    def __init__(self, id: int, level: int, action: str, state: NodeState, cost, time):
+        self.id = id
         self.level = level
         self.action = action
         self.state = state
@@ -24,13 +29,19 @@ class Node:
     def __eq__(self, other):
         if not isinstance(other, Node):
             return False
-        return (self.level, self.action) == (other.level, other.action)
+        return (self.id, self.level, self.action) == (
+            other.id,
+            other.level,
+            other.action,
+        )
 
     def __hash__(self):
-        return hash((self.level, self.action))
+        return hash((self.id, self.level, self.action))
 
     def __str__(self) -> str:
-        return f"{self.action}"
+        return f"{self.action}\nc:{self.cost}\nt:{self.time}"
+    
+    #{self.id}\n
 
     def to_dict(self):
         return {
@@ -52,11 +63,11 @@ class Node:
         )
 
 
-ROOT_NODE = Node(0, "ROOT", NodeState.PERFORMED, 0, 0)
+ROOT_NODE = Node(0, 0, "ROOT", NodeState.PERFORMED, 0, 0)
 
 
 if __name__ == "__main__":
-    node = Node(1, "example", NodeState.PERFORMED, 10, 20)
+    node = Node(0, 1, "example", NodeState.PERFORMED, 10, 20)
     node_dict = node.to_dict()
     print("Node as dictionary:", node_dict)
 

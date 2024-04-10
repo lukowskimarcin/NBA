@@ -26,13 +26,20 @@ class GraphRepository:
         conn = pyodbc.connect(self.connection_string)
         cursor = conn.cursor()
         
+        cursor.execute("SELECT COUNT(*) FROM NBA WHERE client_id = ? AND dlum_id = ?", (graph.client_id, graph.dlum_id))
+        existing_record_count = cursor.fetchone()[0]
+
         nodes_path = []
         for n in graph.best_action_path_nodes:
             nodes_path.append(n.to_dict())
         best_action_path = json.dumps(nodes_path)
 
-        cursor.execute("INSERT INTO NBA (client_id, dlum_id, initial_wps, current_wps, best_action_path, is_action_performed, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                       (graph.client_id, graph.dlum_id, graph.initial_wps, graph.current_wps, best_action_path, graph.is_action_performed, graph.is_active))
+        if existing_record_count > 0:
+            cursor.execute("UPDATE NBA SET initial_wps = ?, current_wps = ?, best_action_path = ?, is_action_performed = ?, is_active = ? WHERE client_id = ? AND dlum_id = ?",
+                        (graph.initial_wps, graph.current_wps, best_action_path, graph.is_action_performed, graph.is_active, graph.client_id, graph.dlum_id))
+        else:
+            cursor.execute("INSERT INTO NBA (client_id, dlum_id, initial_wps, current_wps, best_action_path, is_action_performed, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (graph.client_id, graph.dlum_id, graph.initial_wps, graph.current_wps, best_action_path, graph.is_action_performed, graph.is_active))
         conn.commit()
         conn.close()
 
@@ -59,11 +66,4 @@ if __name__ == "__main__":
     for nba in repository.find_all():
         print(f"{nba}")
 
-    single = repository.findById(1, 1)
-    print(f"\nsingle: {single}")
-
-
-    graph = NBAGraph(4,5,1000,500,None,'T', 'T')
-    repository.save(graph)
-    saved = repository.findById(4, 4)
-    print(f"\nsaved: {saved}")
+   

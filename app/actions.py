@@ -97,5 +97,5 @@ ACTION_MODELS = [
     ReOgnivo(),
     Teren(),
     EKW(),
-    PassAction(),
+#    PassAction(),
 ]
