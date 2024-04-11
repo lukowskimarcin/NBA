@@ -59,7 +59,7 @@ class GraphChart:
             self.graph,
             pos,
             edge_color="#6eaa5e",
-            width=1.5,
+            width=2,
             edgelist=self.__create_path_edge_list(),
         )
         nx.draw_networkx_labels(self.graph, pos, font_size=6, font_family="sans-serif")

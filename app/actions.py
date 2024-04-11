@@ -30,10 +30,10 @@ class ReZus(ActionModel):
         return round(random.random(), 4)
 
     def cost(self):
-        return random.randint(1, 10)
+        return random.randint(1, 6)
 
     def time(self):
-        return random.randint(1, 4)
+        return random.randint(1, 3)
 
 
 class ReOgnivo(ActionModel):
@@ -47,7 +47,7 @@ class ReOgnivo(ActionModel):
         return random.randint(1, 10)
 
     def time(self):
-        return random.randint(2, 4)
+        return random.randint(2, 3)
 
 
 class Teren(ActionModel):
@@ -58,10 +58,10 @@ class Teren(ActionModel):
         return round(random.random(), 4)
 
     def cost(self):
-        return random.randint(1, 10)
+        return random.randint(2, 7)
 
     def time(self):
-        return random.randint(1, 4)
+        return random.randint(1, 3)
 
 
 class EKW(ActionModel):
@@ -72,10 +72,10 @@ class EKW(ActionModel):
         return round(random.random(), 4)
 
     def cost(self):
-        return random.randint(1, 10)
+        return random.randint(1, 5)
 
     def time(self):
-        return random.randint(1, 4)
+        return random.randint(1, 3)
 
 
 class PassAction(ActionModel):
@@ -90,6 +90,3 @@ class PassAction(ActionModel):
 
     def time(self):
         return 1
-
-
-

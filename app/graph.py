@@ -18,6 +18,8 @@ class NBAGraph:
         self.is_active = "T"
         self.best_action_path_nodes: list[Node] = []
         self.next_best_action_name = None
+        self.total_cost_spend = 0
+        self.total_time_spend = 0
 
     def show(self):
         """
@@ -25,8 +27,10 @@ class NBAGraph:
         """
         title = f"""
                  client_id: {self.client_id}, dlum_id: {self.dlum_id}   
-                 wps: {self.current_wps}/{self.initial_wps} ({round(100-(100*self.current_wps/self.initial_wps),2)}%)
-                 MAX_COST: {MAX_COST} MAX_TIME: {MAX_TIME}
+                 wps:   ({self.current_wps}/{self.initial_wps})    ({round(100-(100*self.current_wps/self.initial_wps),2)}%)
+                 total_cost:    ({self.total_cost_spend}/{MAX_COST})    ({round(100*self.total_cost_spend/MAX_COST,2)}%)
+                 total_time:    ({self.total_time_spend}/{MAX_TIME})    ({round(100*self.total_time_spend/MAX_TIME,2)}%)
+                 nodes:   {self.graph.number_of_nodes()}
                 """
         chart = GraphChart(self.graph, self.nodes, self.best_action_path_nodes, title)
         chart.draw()
@@ -128,7 +132,8 @@ class NBAGraph:
         """
         Metoda do uruchomienia w momencie wykonania proponowanej akcji NBA i otrzymaniu rezultatow
         W ramch swojego dzialania oczyszcza graf z sciezek, ktore nie sa już możliwe do przejścia
-        Dodatkow re-generuje graf od punktu akcji
+        Dodatkow re-generuje graf od punktu akcji.
+        Wyznacza rowniez sume dotychczas poniesionego kosztu i czasu
 
         Parametry
         ----------
@@ -178,6 +183,9 @@ class NBAGraph:
                         self.sequence = node.id
                         self.__generate_layer(node, sum_cost, sum_time)
                         self.__find_best_action_path()
+
+                    self.total_cost_spend = sum_cost
+                    self.total_time_spend = sum_time
 
             prev_node = node
 
