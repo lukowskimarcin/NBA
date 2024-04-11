@@ -1,4 +1,4 @@
-from actions import EKW, PassAction, ReOgnivo, ReZus, Teren
+from actions import EKW, PassAction, ReOgnivo, ReZus, Teren, ActionModel
 from node import NodeState, Node
 
 
@@ -7,7 +7,7 @@ MAX_TIME = 18  # Maksymalny czas zycia sprawy
 
 ROOT_NODE = Node(0, 0, "ROOT", NodeState.PERFORMED, 0, 0)
 
-ACTION_MODELS = [
+ACTION_MODELS: list[ActionModel] = [
     ReZus(),
     ReOgnivo(),
     Teren(),

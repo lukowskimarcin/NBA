@@ -43,8 +43,8 @@ class NBAGraph:
         Metoda generuje rekurencyjnie kolejne warstwy grafu, do punktu odciecia (koszt + czas)
         """
         for model in ACTION_MODELS:
-            cost = model.cost()
-            time = model.time()
+            cost = model.estimated_cost()
+            time = model.estimated_time()
 
             actual_sum_cost = node_sum_cost + cost
             actual_sum_time = node_sum_time + time

@@ -11,11 +11,11 @@ class ActionModel(ABC):
         pass
 
     @abstractmethod
-    def cost(self):
+    def estimated_cost(self):
         pass
 
     @abstractmethod
-    def time(self):
+    def estimated_time(self):
         pass
 
     def __str__(self) -> str:
@@ -29,10 +29,10 @@ class ReZus(ActionModel):
     def predict(self, client_id, dlum_id):
         return round(random.random(), 4)
 
-    def cost(self):
+    def estimated_cost(self):
         return random.randint(1, 6)
 
-    def time(self):
+    def estimated_time(self):
         return random.randint(1, 3)
 
 
@@ -43,10 +43,10 @@ class ReOgnivo(ActionModel):
     def predict(self, client_id, dlum_id):
         return round(random.random(), 4)
 
-    def cost(self):
+    def estimated_cost(self):
         return random.randint(1, 10)
 
-    def time(self):
+    def estimated_time(self):
         return random.randint(2, 3)
 
 
@@ -57,10 +57,10 @@ class Teren(ActionModel):
     def predict(self, client_id, dlum_id):
         return round(random.random(), 4)
 
-    def cost(self):
+    def estimated_cost(self):
         return random.randint(2, 7)
 
-    def time(self):
+    def estimated_time(self):
         return random.randint(1, 3)
 
 
@@ -71,10 +71,10 @@ class EKW(ActionModel):
     def predict(self, client_id, dlum_id):
         return round(random.random(), 4)
 
-    def cost(self):
+    def estimated_cost(self):
         return random.randint(1, 5)
 
-    def time(self):
+    def estimated_time(self):
         return random.randint(1, 3)
 
 
@@ -85,8 +85,8 @@ class PassAction(ActionModel):
     def predict(self, client_id, dlum_id):
         return round(random.random(), 4)
 
-    def cost(self):
+    def estimated_cost(self):
         return 2
 
-    def time(self):
+    def estimated_time(self):
         return 1
