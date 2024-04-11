@@ -1,4 +1,5 @@
 import networkx as nx
+from node import Node
 
 
 class DFS:
@@ -12,7 +13,7 @@ class DFS:
 
         return weight
 
-    def dfs(self, node, visited, path):
+    def dfs(self, node, visited, path) -> list[Node]:
         visited.add(node)
         path.append(node)
         max_path = path.copy()

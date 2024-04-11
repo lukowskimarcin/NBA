@@ -1,14 +1,8 @@
 import networkx as nx
-import matplotlib.pyplot as plt
-from actions import ActionModel, ACTION_MODELS
 from dfs import DFS
-from node import Node, ROOT_NODE, NodeState
-import json
-
-import random
-
-MAX_COST = 12  # Maksymalny koszt
-MAX_TIME = 18  # Maksymalny czas zycia sprawy
+from node import Node, NodeState
+from graph_chart import GraphChart
+from constants import ACTION_MODELS, MAX_COST, MAX_TIME, ROOT_NODE
 
 
 class NBAGraph:
@@ -16,182 +10,212 @@ class NBAGraph:
     Reprezentuje Graf NBA
     """
 
-    def __init__(
-        self,
-        client_id,
-        dlum_id,
-        initial_wps,
-        current_wps,
-        best_action_path=None,
-        is_action_performed="N",
-        is_active="T",
-    ) -> None:
+    def __init__(self, client_id, dlum_id, initial_wps, current_wps) -> None:
         self.client_id = client_id
         self.dlum_id = dlum_id
         self.initial_wps = initial_wps
         self.current_wps = current_wps
-        self.best_action_path = best_action_path
-        self.is_action_performed = is_action_performed
-        self.is_active = is_active
-
-        # obiekty Node
+        self.is_active = "T"
         self.best_action_path_nodes: list[Node] = []
-        if self.best_action_path is not None and len(self.best_action_path) > 0:
-            for data in json.loads(self.best_action_path):
-                node = Node.from_dict(data)
+        self.next_best_action_name = None
 
-                if self.is_action_performed and node.state == NodeState.ACTUAL:
-                    node.state = NodeState.PERFORMED
-                self.best_action_path_nodes.append(node)
+    def show(self):
+        """
+        Pokazuje aktualny stan grafu NBA
+        """
+        title = f"""
+                 client_id: {self.client_id}, dlum_id: {self.dlum_id}   
+                 wps: {self.current_wps}/{self.initial_wps} ({round(100-(100*self.current_wps/self.initial_wps),2)}%)
+                 MAX_COST: {MAX_COST} MAX_TIME: {MAX_TIME}
+                """
+        chart = GraphChart(self.graph, self.nodes, self.best_action_path_nodes, title)
+        chart.draw()
 
-    def __generate_layer(
-        self, node: Node, models: list[ActionModel], node_sum_cost, node_sum_time
-    ):
-        visited_layer = False
-        last_best_node = None
+    def __calculate_edge_weight(self, pdp):
+        return round(self.current_wps * pdp, 4)
 
-        if len(self.best_action_path_nodes) - 1 >= node.level + 1:
-            last_best_node = self.best_action_path_nodes[node.level + 1]
+    def __generate_layer(self, node: Node, node_sum_cost, node_sum_time):
+        """
+        Metoda generuje rekurencyjnie kolejne warstwy grafu, do punktu odciecia (koszt + czas)
+        """
+        for model in ACTION_MODELS:
+            cost = model.cost()
+            time = model.time()
 
-            if last_best_node.state == NodeState.PERFORMED:
-                visited_layer = True
+            actual_sum_cost = node_sum_cost + cost
+            actual_sum_time = node_sum_time + time
 
-        for model in models:
-            # przycinanie zbendnych rozgalezien w grafie
-            if (
-                visited_layer
-                and last_best_node is not None
-                and last_best_node.action == model.action_name
-            ) or not visited_layer:
-                cost = model.cost()
-                time = model.time()
+            if (actual_sum_cost <= MAX_COST) and (actual_sum_time <= MAX_TIME):
+                # Nie przekroczone koszty mozemy dodac wezel do grafu
+                pdp = model.predict(self.client_id, self.dlum_id)
+                weight = self.__calculate_edge_weight(pdp)
 
-                actual_sum_cost = node_sum_cost + cost
-                actual_sum_time = node_sum_time + time
+                self.sequence += 1
+                new_node = Node(
+                    self.sequence,
+                    node.level + 1,
+                    model.action_name,
+                    NodeState.EMPTY,
+                    cost,
+                    time,
+                )
 
-                if (actual_sum_cost <= MAX_COST) and (actual_sum_time <= MAX_TIME):
-                    # Nie przekroczone koszty mozemy dodac wezel do grafu
-                    pdp = model.predict(self.client_id, self.dlum_id)
-                    weight = round(self.current_wps * pdp, 4)
+                self.nodes.append(new_node)
+                self.graph.add_edge(node, new_node, weight=weight)
 
-                    if (
-                        visited_layer
-                        and last_best_node is not None
-                        and last_best_node.action == model.action_name
-                    ):
-                        self.sequence += 1
-                        new_node = Node(
-                            self.sequence,
-                            node.level + 1,
-                            model.action_name,
-                            NodeState.PERFORMED,
-                            cost,
-                            time,
-                        )
-                        self.best_action_path_nodes[node.level + 1] = new_node
-                    else:
-                        self.sequence += 1
-                        new_node = Node(
-                            self.sequence,
-                            node.level + 1,
-                            model.action_name,
-                            NodeState.EMPTY,
-                            cost,
-                            time,
-                        )
+                # rekurencyjne tworzenie kolejnej warstwy
+                self.__generate_layer(new_node, actual_sum_cost, actual_sum_time)
 
-                    self.nodes.append(new_node)
-                    self.graph.add_edge(node, new_node, weight=weight)
-
-                    # rekurencyjne tworzenie kolejnej warstwy
-                    self.__generate_layer(
-                        new_node, models, actual_sum_cost, actual_sum_time
-                    )
-
-    def build(self, models: list[ActionModel]):
+    def build(self):
+        """
+        Metoda generuje inicjalny graf możliwych akcji
+        """
         self.graph = nx.DiGraph()
         self.nodes = [ROOT_NODE]
         self.sequence = 0
-        self.__generate_layer(ROOT_NODE, models, 0, 0)
+        self.__generate_layer(ROOT_NODE, 0, 0)
+
+    def __clean_up_from_node(self, node: Node, include: bool = False):
+        """
+        Usuwa krawedzie i wezly z grafu od wskazanego wezla
+
+        Parametry
+        ----------
+        node : wezel startowy akcji
+        include : czy wskazany wezel rowniez usunac
+        """
+        if include:
+            subgraph_nodes = nx.descendants(self.graph, node) | {node}
+        else:
+            subgraph_nodes = nx.descendants(self.graph, node)
+
+        self.graph.remove_nodes_from(subgraph_nodes)
+        for n in subgraph_nodes:
+            self.nodes.remove(n)
+            if n in self.best_action_path_nodes:
+                self.best_action_path_nodes.remove(n)
 
     def __find_node_index(self, node):
+        """
+        Zwraca indeks wezła w self.nodes
+        """
         i = 0
         for n in self.nodes:
             if n == node:
                 return i
             i += 1
-
         return -1
 
-    def determine_next_action(self):
-        # wyznacz nastepna akcje do wykonania na dlugu
+    def __get_children_nodes(self, node) -> list[Node]:
+        """
+        Zwróc liste dzieci wskazanego węzła w grafie
+        """
+        result = [n for n in self.graph.successors(node)]
+        return result
+
+    def __find_best_action_path(self):
+        """
+        Wyszukuje w grafie aktualna najkorzystniejszą ścieżke działań według sumy wag krawędzi
+        """
+
         dfs_solver = DFS(self.graph)
         visited = set()
-        optimal_path: list[Node] = dfs_solver.dfs(self.nodes[0], visited, [])
-        actual_node = None
+        self.best_action_path_nodes = dfs_solver.dfs(self.nodes[0], visited, [])
+
+    def action_performed(
+        self, new_current_wps, real_cost=None, real_time=None, recalculate_graph=True
+    ):
+        """
+        Metoda do uruchomienia w momencie wykonania proponowanej akcji NBA i otrzymaniu rezultatow
+        W ramch swojego dzialania oczyszcza graf z sciezek, ktore nie sa już możliwe do przejścia
+        Dodatkow re-generuje graf od punktu akcji
+
+        Parametry
+        ----------
+        new_current_wps : aktualny rzeczywisty WPS po wykonaniu akcji
+        real_cost : realny koszt wykonania akcji NBA, gdy None nie nadpisuje informacji w wezle
+        real_time : realny czas wykonania akcji NBA, gdy None nie nadpisuje informacji w wezle
+        recalculate_graph : czy na nowo przeliczyć możliwe opcje akcji od zatwierdzonej
+        """
+
+        self.next_best_action_name = None
+        self.current_wps = new_current_wps
+
+        if new_current_wps <= 0:
+            self.is_active = "N"
+
+        # znajdz aktualny Node i zmien status
+        sum_cost = 0
+        sum_time = 0
 
         prev_node = None
-        for node in optimal_path:
+        for node in self.best_action_path_nodes:
+
             if prev_node is not None:
-                index = self.__find_node_index(node)
-                if prev_node.state == NodeState.PERFORMED:
-                    self.nodes[index].state = NodeState.ACTUAL
-                    actual_node = self.nodes[index]
-                else:
-                    self.nodes[index].state = NodeState.FUTURE
+                sum_cost += node.cost
+                sum_time += node.time
+
+                if node.state == NodeState.ACTUAL:
+                    node.state = NodeState.PERFORMED
+                    index = self.__find_node_index(node)
+                    self.nodes[index].state = NodeState.PERFORMED
+                    if real_cost is not None:
+                        sum_cost = sum_cost - node.cost + real_cost
+                        node.cost = real_cost
+
+                    if real_time is not None:
+                        sum_time = sum_time - node.time + real_time
+                        node.time = real_time
+
+                    # usun sciezki ktore staly sie martwe
+                    for children in self.__get_children_nodes(prev_node):
+                        if children.state == NodeState.EMPTY:
+                            self.__clean_up_from_node(children, True)
+
+                    # przegeneruj graf po wykonanej akcji
+                    if recalculate_graph:
+                        self.__clean_up_from_node(node, False)
+                        self.sequence = node.id
+                        self.__generate_layer(node, sum_cost, sum_time)
+                        self.__find_best_action_path()
 
             prev_node = node
 
-        self.is_action_performed = "N"
-        return actual_node
+    def determine_next_action(self):
+        """
+        Metoda wyznacza najlepszą następną akcje.
+        """
+        if self.is_active == "N":
+            return None
 
-    def draw(self):
-        # https://networkx.org/documentation/stable/auto_examples/graph/plot_dag_layout.html
-        for layer, nodes in enumerate(nx.topological_generations(self.graph)):
-            # `multipartite_layout` expects the layer as a node attribute, so add the
-            # numeric layer value as a node attribute
-            for node in nodes:
-                self.graph.nodes[node]["layer"] = layer
+        self.__find_best_action_path()
+        result_node = None
 
-        # Compute the multipartite_layout using the "layer" node attribute
-        pos = nx.multipartite_layout(self.graph, subset_key="layer")
+        prev_node = None
+        for node in self.best_action_path_nodes:
+            if prev_node is not None:
+                index = self.__find_node_index(node)
 
-        # kolorowanie stanow:
-        NODE_COLORS = ["lightblue", "#6eaa5e", "pink", "#dbead5"]
-        for state in NodeState.iterate_enum_members():
-            nodelist = []
-            for node in self.nodes:
-                if node.state == state:
-                    nodelist.append(node)
+                if (
+                    prev_node.state == NodeState.PERFORMED
+                    and node.state != NodeState.PERFORMED
+                ):
+                    self.nodes[index].state = NodeState.ACTUAL
+                    node.state = NodeState.ACTUAL
+                    result_node = self.nodes[index]
 
-            nx.draw_networkx_nodes(
-                self.graph,
-                pos,
-                node_color=NODE_COLORS[state.value],
-                node_size=3000,
-                nodelist=nodelist,
-            )
+                if node.state == NodeState.EMPTY:
+                    self.nodes[index].state = NodeState.FUTURE
+                    node.state = NodeState.FUTURE
 
-        nx.draw_networkx_edges(self.graph, pos, edge_color="grey")
-        nx.draw_networkx_labels(self.graph, pos, font_size=6, font_family="sans-serif")
-        nx.draw_networkx_edge_labels(
-            self.graph,
-            pos,
-            edge_labels={
-                (u, v): d["weight"] for u, v, d in self.graph.edges(data=True)
-            },
-        )
+            prev_node = node
 
-        plt.axis("off")
-        plt.title(
-            f"""
-                 client_id: {self.client_id}, dlum_id: {self.dlum_id}   
-                 wps: {self.current_wps}/{self.initial_wps}
-                 MAX_COST: {MAX_COST} MAX_TIME: {MAX_TIME}
-                """,
-            loc="left",
-        )
-        plt.show()
+        if result_node is not None:
+            self.next_best_action_name = result_node.action
+        else:
+            self.is_active = "N"
+
+        return result_node
 
     def __str__(self) -> str:
         return (
@@ -201,45 +225,7 @@ class NBAGraph:
                 dlum_id: {self.dlum_id}, 
                 initial_wps: {self.initial_wps}, 
                 current_wps: {self.current_wps}, 
-                best_action_path: {self.best_action_path},
-                is_action_performed: {self.is_action_performed},
                 is_active: {self.is_active}
                 """
             + "}"
         )
-
-
-if __name__ == "__main__":
-    from repository import GraphRepository
-
-    repository = GraphRepository()
-
-    client_id = random.randint(1, 1000)
-    dlum_id = random.randint(1, 1000)
-
-    graph = NBAGraph(client_id, dlum_id, 1000, 1000)
-    graph.build(ACTION_MODELS)
-
-    print(f"graph: {graph}")
-    #graph.draw()
-    repository.save(graph)
-
-    # 1
-    graph = repository.findById(client_id, dlum_id)
-    graph.build(ACTION_MODELS)
-    graph.draw()
-    actual_node = graph.determine_next_action()
-    print(f"1: next best action: {actual_node.level}-{actual_node.action}")
-    graph.draw()
-    repository.save(graph)
-
-    # 2
-    graph = repository.findById(client_id, dlum_id)
-    graph.build(ACTION_MODELS)
-    graph.draw()
-    actual_node = graph.determine_next_action()
-    print(f"2: next best action: {actual_node.level}-{actual_node.action}")
-    graph.draw()
-    repository.save(graph)
-
- 

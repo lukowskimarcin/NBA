@@ -40,11 +40,12 @@ class Node:
 
     def __str__(self) -> str:
         return f"{self.action}\nc:{self.cost}\nt:{self.time}"
-    
-    #{self.id}\n
+
+    # {self.id}\n
 
     def to_dict(self):
         return {
+            "id": self.id,
             "level": self.level,
             "action": self.action,
             "state": self.state.name,
@@ -55,6 +56,7 @@ class Node:
     @classmethod
     def from_dict(cls, data):
         return cls(
+            data["id"],
             data["level"],
             data["action"],
             NodeState[data["state"]],
@@ -63,7 +65,7 @@ class Node:
         )
 
 
-ROOT_NODE = Node(0, 0, "ROOT", NodeState.PERFORMED, 0, 0)
+
 
 
 if __name__ == "__main__":

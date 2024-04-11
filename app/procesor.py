@@ -16,13 +16,13 @@ class GraphsProcessor:
         graph.build(ACTION_MODELS)
 
         # pokaza jak wyglada graf
-        graph.draw()
+        graph.show()
 
         # wyznacz
         graph.determine_next_action()
 
         # pokaz jak wyglada graf po wyznaczeniu akcji
-        graph.draw()
+        graph.show()
 
         self.repository.save(graph)
 

@@ -86,16 +86,10 @@ class PassAction(ActionModel):
         return round(random.random(), 4)
 
     def cost(self):
-        return 1
+        return 2
 
     def time(self):
         return 1
 
 
-ACTION_MODELS = [
-    ReZus(),
-    ReOgnivo(),
-    Teren(),
-    EKW(),
-#    PassAction(),
-]
+
