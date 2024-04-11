@@ -3,6 +3,7 @@ from constants import MAX_COST, MAX_TIME
 from graph import NBAGraph
 
 recalculate_graph = True
+if_draw = True
 
 
 if __name__ == "__main__":
@@ -12,7 +13,8 @@ if __name__ == "__main__":
     graph.build()
 
     print(f"graph: {graph}")
-    graph.show()
+    if if_draw:
+        graph.show()
 
     index = 0
     current_wps = 900
@@ -23,17 +25,22 @@ if __name__ == "__main__":
         actual_node = graph.determine_next_action()
         if actual_node is not None:
             print(
-                f"{index}: next best action: {actual_node.level}-{actual_node.action}"
+                f"{index}: next best action: {actual_node.level}-{actual_node.action}  ({len(graph.nodes)}) nodes in graph"
             )
-            graph.show()
+            if if_draw:
+                graph.show()
+
             real_cost = random.randint(1, 5)
             real_time = random.randint(1, 3)
             print(
                 f"\taction performed with => wps: {current_wps}, real_cost: {real_cost}, real_time: {real_time}"
             )
             graph.action_performed(current_wps, real_cost, real_time, recalculate_graph)
-            graph.show()
-            current_wps -= random.randint(0, 200)
+
+            if if_draw:
+                graph.show()
+
+            current_wps -= random.randint(0, 200)            
         else:
             break
 

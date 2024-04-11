@@ -15,7 +15,7 @@ class NBAGraph:
         self.dlum_id = dlum_id
         self.initial_wps = initial_wps
         self.current_wps = current_wps
-        self.is_active = "T"
+        self.is_active = "T" 
         self.best_action_path_nodes: list[Node] = []
         self.next_best_action_name = None
         self.total_cost_spend = 0
