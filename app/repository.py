@@ -1,3 +1,4 @@
+from constants import SQL_CONNECTION_STR
 from graph import NBAGraph
 import pyodbc
 import json
@@ -6,7 +7,7 @@ import json
 class GraphRepository:
 
     def __init__(self) -> None:
-        self.connection_string = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=127.0.0.1,5433;Encrypt=no;DATABASE=msdb;UID=sa;PWD=sa!234#sa$%"
+        self.connection_string = SQL_CONNECTION_STR
 
     def find_all(self) -> list[NBAGraph]:
         graphs = []

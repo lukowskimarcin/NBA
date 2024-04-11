@@ -41,8 +41,6 @@ class Node:
     def __str__(self) -> str:
         return f"{self.action}\nc:{self.cost}\nt:{self.time}"
 
-    # {self.id}\n
-
     def to_dict(self):
         return {
             "id": self.id,
@@ -63,9 +61,6 @@ class Node:
             data["cost"],
             data["time"],
         )
-
-
-
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from actions import ACTION_MODELS
+from constants import ACTION_MODELS
 from repository import GraphRepository
 
 
